@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: coffee_store_db
+    environment:
+      SA_PASSWORD: "Nghi000@"
+      ACCEPT_EULA: "Y"
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssql_data:/var/opt/mssql
+    networks:
+      - coffee_network
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: coffee_store_api
+    depends_on:
+      - db
+    environment:
+      ConnectionStrings__DefaultConnection: "Server=db;Database=CoffeeStoreDB;User Id=sa;Password=Nghi000@;"
+      ASPNETCORE_ENVIRONMENT: Development
+    ports:
+      - "5000:80"
+    networks:
+      - coffee_network
+
+volumes:
+  mssql_data:
+
+networks:
+  coffee_network:
+    driver: bridge

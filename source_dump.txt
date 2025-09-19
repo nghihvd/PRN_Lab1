@@ -1,0 +1,2126 @@
+# TỔNG HỢP MÃ NGUỒN DỰ ÁN
+# ==================================================
+# Đường dẫn: D:\Semester 8\PRN232\PRN232.Lab1.CoffeeStore
+# Công nghệ phát hiện: csharp, docker
+# ==================================================
+
+## CẤU TRÚC THƯ MỤC
+```
+PRN232.Lab1.CoffeeStore/
+├── .vs/
+├── PRN232.Lab1.CoffeeStore.API/
+│   ├── Controllers/
+│   │   ├── MenuController.cs
+│   │   └── ProductController.cs
+│   ├── Properties/
+│   │   └── launchSettings.json
+│   ├── bin/
+│   ├── obj/
+│   ├── PRN232.Lab1.CoffeeStore.API.csproj
+│   ├── PRN232.Lab1.CoffeeStore.API.csproj.user
+│   ├── Program.cs
+│   ├── appsettings.Development.json
+│   └── appsettings.json
+├── PRN232.Lab1.CoffeeStore.Data/
+│   ├── Database/
+│   ├── Interfaces/
+│   │   ├── IGenericRepository.cs
+│   │   ├── IMenuRepository.cs
+│   │   ├── IProductInMenuRepository.cs
+│   │   └── IProductRepository.cs
+│   ├── Migrations/
+│   │   ├── 20250910020826_init.Designer.cs
+│   │   ├── 20250910020826_init.cs
+│   │   ├── 20250915034424_change.Designer.cs
+│   │   ├── 20250915034424_change.cs
+│   │   └── DatabaseContextModelSnapshot.cs
+│   ├── Models/
+│   │   ├── Category.cs
+│   │   ├── Menu.cs
+│   │   ├── Product.cs
+│   │   └── ProductInMenu.cs
+│   ├── Repository/
+│   │   ├── GenericRepository.cs
+│   │   ├── MenuRepository.cs
+│   │   ├── ProductInMenuRepository.cs
+│   │   └── ProductRepository.cs
+│   ├── bin/
+│   ├── obj/
+│   └── PRN232.Lab1.CoffeeStore.Data.csproj
+├── PRN232.Lab1.CoffeeStore.Service/
+│   ├── Interfaces/
+│   │   ├── IMenuService.cs
+│   │   ├── IProductInMenuService.cs
+│   │   └── IProductService.cs
+│   ├── RequestModels/
+│   │   ├── MenuRequestModel.cs
+│   │   ├── ProductInMenuRequestModel.cs
+│   │   └── ProductRequestModel.cs
+│   ├── Services/
+│   │   ├── MenuService.cs
+│   │   ├── ProductInMenuService.cs
+│   │   └── ProductService.cs
+│   ├── Validations/
+│   │   ├── MenuValidation.cs
+│   │   └── ProductValidation.cs
+│   ├── bin/
+│   ├── obj/
+│   └── PRN232.Lab1.CoffeeStore.Service.csproj
+├── .dockerignore
+├── Dockerfile
+├── PRN232.Lab1.CoffeeStore.sln
+└── docker-compose.yml
+```
+
+## NỘI DUNG CÁC FILE
+
+### PRN232.Lab1.CoffeeStore.API\Program.cs
+```cs
+﻿using Microsoft.EntityFrameworkCore;
+using PRN232.Lab1.CoffeeStore.Data.Database;
+using PRN232.Lab1.CoffeeStore.Data.Interfaces;
+using PRN232.Lab1.CoffeeStore.Data.Repository;
+using PRN232.Lab1.CoffeeStore.Service.Interfaces;
+using PRN232.Lab1.CoffeeStore.Service.Services;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Add services to the container.
+
+builder.Services.AddControllers();
+// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+// Đăng ký DbContext với connection string
+builder.Services.AddDbContext<DatabaseContext>(options =>
+    options.UseSqlServer(connectionString));
+builder.Services.AddScoped<IProductRepository, ProductRepository>();
+builder.Services.AddScoped<IMenuRepository, MenuRepository>();
+builder.Services.AddScoped<IProductInMenuRepository, ProductInMenuRepository>();
+builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<IMenuService, MenuService>();
+builder.Services.AddScoped<IProductInMenuService, ProductInMenuService>();
+var app = builder.Build();
+
+
+    app.UseSwagger();
+    app.UseSwaggerUI();
+
+
+app.UseHttpsRedirection();
+
+app.UseAuthorization();
+
+app.MapControllers();
+
+app.Run();
+
+```
+
+### PRN232.Lab1.CoffeeStore.API\Controllers\MenuController.cs
+```cs
+﻿using Microsoft.AspNetCore.Mvc;
+using PRN232.Lab1.CoffeeStore.Service.Interfaces;
+using PRN232.Lab1.CoffeeStore.Service.RequestModels;
+
+namespace PRN232.Lab1.CoffeeStore.API.Controllers
+{
+    [Route("api/menus")]
+    [ApiController]
+    public class MenuController : ControllerBase
+    {
+        private readonly IMenuService _service;
+        public MenuController(IMenuService service)
+        {
+            _service = service;
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAll()
+        {
+            var menus = await _service.GetAllMenusAsync();
+            return Ok(menus);
+        }
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(string id)
+        {
+            try
+            {
+                var menu = await _service.GetMenuByIdAsync(id);
+                return Ok(menu);
+            }
+            catch (Exception e)
+            {
+                return NotFound(e.Message);
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Create([FromBody] MenuRequestModel request)
+        {
+            try
+            {
+                var menu = await _service.CreateMenuAsync(request);
+                return CreatedAtAction(nameof(GetById), new { id = menu.MenuId }, menu);
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(string id, [FromBody] MenuRequestModel request)
+        {
+            try
+            {
+                var updated = await _service.UpdateMenuAsync(id, request);
+                return Ok(updated);
+            }
+            catch (Exception e)
+            {
+                return NotFound(e.Message);
+            }
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(string id)
+        {
+            try
+            {
+                // Nếu xóa thành công trả NoContent
+                var result = await _service.DeleteMenuAsync(id);
+                if (result) return NoContent();
+                return NotFound("Menu not found");
+            }
+            catch (Exception e)
+            {
+                return NotFound(e.Message);
+            }
+        }
+    }
+}
+
+```
+
+### PRN232.Lab1.CoffeeStore.API\Controllers\ProductController.cs
+```cs
+﻿using Microsoft.AspNetCore.Mvc;
+using PRN232.Lab1.CoffeeStore.Service.Interfaces;
+using PRN232.Lab1.CoffeeStore.Service.RequestModels;
+
+namespace PRN232.Lab1.CoffeeStore.API.Controllers
+{
+    [Route("api/products")]
+    [ApiController]
+    public class ProductController : ControllerBase
+    {
+        private readonly IProductService _service;
+        public ProductController(IProductService service)
+        {
+            _service = service;
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAll()
+        {
+            var result = await _service.GetAllProductsAsync();
+            return Ok(result);
+        }
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(string id)
+        {
+            try
+            {
+                var product = await _service.GetProductByIdAsync(id);
+                return Ok(product);
+            }
+            catch (Exception e)
+            {
+                return NotFound(e.Message);
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Create([FromBody] ProductRequestModel request)
+        {
+            try
+            {
+                var product = await _service.CreatProductAsync(request);
+                return CreatedAtAction(nameof(GetById), new { id = product.ProductId }, product);
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(string id, [FromBody] ProductRequestModel request)
+        {
+            try
+            {
+                var updated = await _service.UpdateProductAsync(id, request);
+                return Ok(updated);
+            }
+            catch (Exception e)
+            {
+                return NotFound(e.Message);
+            }
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(string id)
+        {
+            try
+            {
+                await _service.DeleteProductAsync(id);
+                return NoContent();
+            }
+            catch (Exception e)
+            {
+                return NotFound(e.Message);
+            }
+        }
+    }
+}
+
+```
+
+### PRN232.Lab1.CoffeeStore.Data\Interfaces\IGenericRepository.cs
+```cs
+﻿using System.Linq.Expressions;
+
+namespace PRN232.Lab1.CoffeeStore.Data.Interfaces
+{
+    /// <summary>
+    /// Defines generic methods for performing CRUD operations on an entity.
+    /// </summary>
+    /// <typeparam name="T">The type of the entity.</typeparam>
+    public interface IGenericRepository<T> where T : class
+    {
+        IQueryable<T> Entities { get; }
+
+        // Non-async methods
+        #region Get
+        /// <summary>
+        /// Retrieves all records from the database synchronously.
+        /// </summary>
+        /// <returns>A list of all records.</returns>
+        IEnumerable<T> GetAll();
+
+        /// <summary>
+        /// Retrieves a single record from the database synchronously based on its ID.
+        /// </summary>
+        /// <param name="id">The ID of the record to retrieve.</param>
+        /// <returns>The record corresponding to the provided ID, or null if not found.</returns>
+        T? GetById(object id);
+
+        /// <summary>
+        /// Finds records that match the specified condition synchronously.
+        /// </summary>
+        /// <param name="predicate">The condition to filter records.</param>
+        /// <returns>A list of records that match the condition.</returns>
+        IEnumerable<T> Find(Expression<Func<T, bool>> predicate);
+
+        /// <summary>
+        /// Finds records that match the specified condition and sorts them synchronously.
+        /// </summary>
+        /// <param name="predicate">The condition to filter records.</param>
+        /// <param name="orderBy">The sorting expression.</param>
+        /// <returns>A sorted list of records that match the condition.</returns>
+        IEnumerable<T> Find(Expression<Func<T, bool>> predicate, Func<IQueryable<T>, IOrderedQueryable<T>> orderBy);
+
+        /// <summary>
+        /// Finds records that match the specified condition, sorts them, and projects them into a specified type synchronously.
+        /// </summary>
+        /// <typeparam name="TResult">The type of the result.</typeparam>
+        /// <param name="predicate">The condition to filter records.</param>
+        /// <param name="orderBy">The sorting expression.</param>
+        /// <param name="selector">The projection expression.</param>
+        /// <returns>A list of projected records that match the condition.</returns>
+        IEnumerable<TResult> Find<TResult>(
+            Expression<Func<T, bool>>? predicate,
+            Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy,
+            Expression<Func<T, TResult>> selector);
+
+        /// <summary>
+        /// Finds records that match the specified condition, sorts them, and projects them into a specified type with pagination synchronously.
+        /// </summary>
+        /// <typeparam name="TResult">  </typeparam>
+        /// <param name="predicate">  </param>
+        /// <param name="orderBy"></param>
+        /// <param name="selector"></param>
+        /// <param name="pageIndex"></param>
+        /// <param name="pageSize"></param>
+        /// <returns></returns>
+        IEnumerable<TResult> Find<TResult>(
+            Expression<Func<T, bool>>? predicate,
+            Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy,
+            Expression<Func<T, TResult>> selector,
+            int pageIndex = 0,
+            int pageSize = 10);
+
+        ///// <summary>
+        ///// Finds records with pagination synchronously.
+        ///// </summary>
+        ///// <param name="predicate">The condition to filter records.</param>
+        ///// <param name="orderBy">The sorting expression.</param>
+        ///// <param name="pageNumber">The page number to retrieve.</param>
+        ///// <param name="pageSize">The number of records per page.</param>
+        ///// <returns>A paged result containing the records and pagination details.</returns>
+        //PagedResult<T> FindWithPaging(
+        //    Expression<Func<T, bool>>? predicate,
+        //    Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy,
+        //    int pageNumber,
+        //    int pageSize);
+        #endregion
+
+        /// <summary>
+        /// Adds a new record to the database synchronously.
+        /// </summary>
+        /// <param name="entity">The record to add.</param>
+        void Add(T entity);
+
+        /// <summary>
+        /// Adds multiple records to the database synchronously.
+        /// </summary>
+        /// <param name="entities">The list of records to add.</param>
+        void AddRange(IEnumerable<T> entities);
+
+        /// <summary>
+        /// Updates an existing record in the database synchronously.
+        /// </summary>
+        /// <param name="entity">The record to update.</param>
+        void Update(T entity);
+
+        /// <summary>
+        /// Deletes a record from the database synchronously.
+        /// </summary>
+        /// <param name="entity">The record to delete.</param>
+        void Delete(T entity);
+
+        /// <summary>
+        /// Deletes multiple records from the database synchronously.
+        /// </summary>
+        /// <param name="entities">The list of records to delete.</param>
+        void DeleteRange(IEnumerable<T> entities);
+
+        // Async methods
+
+        #region Get Async
+        /// <summary>
+        /// Retrieves all records from the database asynchronously.
+        /// </summary>
+        /// <returns>A task that represents the asynchronous operation. The task result contains a list of all records.</returns>
+        Task<IEnumerable<T>> GetAllAsync();
+
+        /// <summary>
+        /// Retrieves a single record from the database asynchronously based on its ID.
+        /// </summary>
+        /// <param name="id">The ID of the record to retrieve.</param>
+        /// <returns>A task that represents the asynchronous operation. The task result contains the record corresponding to the provided ID, or null if not found.</returns>
+        Task<T?> GetByIdAsync(object id);
+
+        /// <summary>
+        /// Finds records that match the specified condition asynchronously.
+        /// </summary>
+        /// <param name="predicate">The condition to filter records.</param>
+        /// <returns>A task that represents the asynchronous operation. The task result contains a list of records that match the condition.</returns>
+        Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate);
+
+        /// <summary>
+        /// Finds records that match the specified condition and sorts them asynchronously.
+        /// </summary>
+        /// <param name="predicate">The condition to filter records.</param>
+        /// <param name="orderBy">The sorting expression.</param>
+        /// <returns>A task that represents the asynchronous operation. The task result contains a sorted list of records that match the condition.</returns>
+        Task<IEnumerable<T>> FindAsync(
+            Expression<Func<T, bool>> predicate,
+            Func<IQueryable<T>, IOrderedQueryable<T>> orderBy);
+
+        /// <summary>
+        /// Finds records that match the specified condition, sorts them, and projects them into a specified type asynchronously.
+        /// </summary>
+        /// <typeparam name="TResult">The type of the result.</typeparam>
+        /// <param name="predicate">The condition to filter records.</param>
+        /// <param name="orderBy">The sorting expression.</param>
+        /// <param name="selector">The projection expression.</param>
+        /// <returns>A task that represents the asynchronous operation. The task result contains a list of projected records that match the condition.</returns>
+        Task<IEnumerable<TResult>> FindAsync<TResult>(
+            Expression<Func<T, bool>>? predicate,
+            Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy,
+            Expression<Func<T, TResult>> selector);
+
+        Task<IEnumerable<TResult>> FindAsync<TResult>(
+            Expression<Func<T, bool>>? predicate,
+            Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy,
+            Expression<Func<T, TResult>> selector,
+            int pageIndex = 0,
+            int pageSize = 10);
+
+        ///// <summary>
+        ///// Finds records with pagination asynchronously.
+        ///// </summary>
+        ///// <param name="predicate">The condition to filter records.</param>
+        ///// <param name="orderBy">The sorting expression.</param>
+        ///// <param name="pageNumber">The page number to retrieve.</param>
+        ///// <param name="pageSize">The number of records per page.</param>
+        ///// <returns>A task that represents the asynchronous operation. The task result contains a paged result with the records and pagination details.</returns>
+        //Task<PagedResult<T>> FindWithPagingAsync(
+        //    Expression<Func<T, bool>>? predicate,
+        //    Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy,
+        //    int pageNumber,
+        //    int pageSize);
+        #endregion
+
+        #region Add Async
+        /// <summary>
+        /// Adds a new record to the database asynchronously.
+        /// </summary>
+        /// <param name="entity">The record to add.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        Task AddAsync(T entity);
+
+        /// <summary>
+        /// Adds multiple records to the database asynchronously.
+        /// </summary>
+        /// <param name="entities">The list of records to add.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        Task AddRangeAsync(IEnumerable<T> entities);
+        #endregion
+
+        #region Update Async
+        /// <summary>
+        /// Updates an existing record in the database asynchronously.
+        /// </summary>
+        /// <param name="entity">The record to update.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        Task UpdateAsync(T entity);
+        #endregion
+
+        #region Delete Async
+        /// <summary>
+        /// Deletes a record from the database asynchronously.
+        /// </summary>
+        /// <param name="entity">The record to delete.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        Task DeleteAsync(T entity);
+
+        /// <summary>
+        /// Deletes multiple records from the database asynchronously.
+        /// </summary>
+        /// <param name="entities">The list of records to delete.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        Task DeleteRangeAsync(IEnumerable<T> entities);
+        #endregion
+
+        Task SaveChangeAsync();
+    }
+}
+```
+
+### PRN232.Lab1.CoffeeStore.Data\Interfaces\IMenuRepository.cs
+```cs
+﻿using PRN232.Lab1.CoffeeStore.Data.Entities;
+
+namespace PRN232.Lab1.CoffeeStore.Data.Interfaces
+{
+    public interface IMenuRepository : IGenericRepository<Menu>
+    {
+
+    }
+}
+
+```
+
+### PRN232.Lab1.CoffeeStore.Data\Interfaces\IProductInMenuRepository.cs
+```cs
+﻿using PRN232.Lab1.CoffeeStore.Data.Entities;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace PRN232.Lab1.CoffeeStore.Data.Interfaces
+{
+    public interface IProductInMenuRepository: IGenericRepository<ProductInMenu>
+    {
+    }
+}
+
+```
+
+### PRN232.Lab1.CoffeeStore.Data\Interfaces\IProductRepository.cs
+```cs
+﻿using PRN232.Lab1.CoffeeStore.Data.Entities;
+
+namespace PRN232.Lab1.CoffeeStore.Data.Interfaces
+{
+    public interface IProductRepository : IGenericRepository<Product>
+    {
+    }
+}
+
+```
+
+### PRN232.Lab1.CoffeeStore.Data\Migrations\20250910020826_init.cs
+```cs
+﻿using Microsoft.EntityFrameworkCore.Migrations;
+
+#nullable disable
+
+namespace PRN232.Lab1.CoffeeStore.Data.Migrations
+{
+    /// <inheritdoc />
+    public partial class init : Migration
+    {
+        /// <inheritdoc />
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.CreateTable(
+                name: "Categories",
+                columns: table => new
+                {
+                    CategoryId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Categories", x => x.CategoryId);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Menus",
+                columns: table => new
+                {
+                    MenuId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    FromDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ToDate = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Menus", x => x.MenuId);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Products",
+                columns: table => new
+                {
+                    ProductId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Price = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    CategoryId = table.Column<int>(type: "int", nullable: true),
+                    CategoryId1 = table.Column<string>(type: "nvarchar(450)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Products", x => x.ProductId);
+                    table.ForeignKey(
+                        name: "FK_Products_Categories_CategoryId1",
+                        column: x => x.CategoryId1,
+                        principalTable: "Categories",
+                        principalColumn: "CategoryId");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ProductInMenus",
+                columns: table => new
+                {
+                    ProductInMenuId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    ProductId = table.Column<string>(type: "nvarchar(450)", nullable: true),
+                    MenuId = table.Column<string>(type: "nvarchar(450)", nullable: true),
+                    Quantity = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ProductInMenus", x => x.ProductInMenuId);
+                    table.ForeignKey(
+                        name: "FK_ProductInMenus_Menus_MenuId",
+                        column: x => x.MenuId,
+                        principalTable: "Menus",
+                        principalColumn: "MenuId");
+                    table.ForeignKey(
+                        name: "FK_ProductInMenus_Products_ProductId",
+                        column: x => x.ProductId,
+                        principalTable: "Products",
+                        principalColumn: "ProductId");
+                });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ProductInMenus_MenuId",
+                table: "ProductInMenus",
+                column: "MenuId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ProductInMenus_ProductId",
+                table: "ProductInMenus",
+                column: "ProductId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Products_CategoryId1",
+                table: "Products",
+                column: "CategoryId1");
+        }
+
+        /// <inheritdoc />
+        protected override void Down(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.DropTable(
+                name: "ProductInMenus");
+
+            migrationBuilder.DropTable(
+                name: "Menus");
+
+            migrationBuilder.DropTable(
+                name: "Products");
+
+            migrationBuilder.DropTable(
+                name: "Categories");
+        }
+    }
+}
+
+```
+
+### PRN232.Lab1.CoffeeStore.Data\Migrations\20250910020826_init.Designer.cs
+```cs
+﻿// <auto-generated />
+using System;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using PRN232.Lab1.CoffeeStore.Data.Database;
+
+#nullable disable
+
+namespace PRN232.Lab1.CoffeeStore.Data.Migrations
+{
+    [DbContext(typeof(DatabaseContext))]
+    [Migration("20250910020826_init")]
+    partial class init
+    {
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
+        {
+#pragma warning disable 612, 618
+            modelBuilder
+                .HasAnnotation("ProductVersion", "8.0.11")
+                .HasAnnotation("Relational:MaxIdentifierLength", 128);
+
+            SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+
+            modelBuilder.Entity("PRN232.Lab1.CoffeeStore.Data.Entities.Category", b =>
+                {
+                    b.Property<string>("CategoryId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("CategoryId");
+
+                    b.ToTable("Categories");
+                });
+
+            modelBuilder.Entity("PRN232.Lab1.CoffeeStore.Data.Entities.Menu", b =>
+                {
+                    b.Property<string>("MenuId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("FromDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("ToDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("MenuId");
+
+                    b.ToTable("Menus");
+                });
+
+            modelBuilder.Entity("PRN232.Lab1.CoffeeStore.Data.Entities.Product", b =>
+                {
+                    b.Property<string>("ProductId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int?>("CategoryId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CategoryId1")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal?>("Price")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("ProductId");
+
+                    b.HasIndex("CategoryId1");
+
+                    b.ToTable("Products");
+                });
+
+            modelBuilder.Entity("PRN232.Lab1.CoffeeStore.Data.Entities.ProductInMenu", b =>
+                {
+                    b.Property<string>("ProductInMenuId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("MenuId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("ProductId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.HasKey("ProductInMenuId");
+
+                    b.HasIndex("MenuId");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("ProductInMenus");
+                });
+
+            modelBuilder.Entity("PRN232.Lab1.CoffeeStore.Data.Entities.Product", b =>
+                {
+                    b.HasOne("PRN232.Lab1.CoffeeStore.Data.Entities.Category", "Category")
+                        .WithMany("Products")
+                        .HasForeignKey("CategoryId1");
+
+                    b.Navigation("Category");
+                });
+
+            modelBuilder.Entity("PRN232.Lab1.CoffeeStore.Data.Entities.ProductInMenu", b =>
+                {
+                    b.HasOne("PRN232.Lab1.CoffeeStore.Data.Entities.Menu", "Menu")
+                        .WithMany("ProductInMenus")
+                        .HasForeignKey("MenuId");
+
+                    b.HasOne("PRN232.Lab1.CoffeeStore.Data.Entities.Product", "Product")
+                        .WithMany("ProductInMenus")
+                        .HasForeignKey("ProductId");
+
+                    b.Navigation("Menu");
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("PRN232.Lab1.CoffeeStore.Data.Entities.Category", b =>
+                {
+                    b.Navigation("Products");
+                });
+
+            modelBuilder.Entity("PRN232.Lab1.CoffeeStore.Data.Entities.Menu", b =>
+                {
+                    b.Navigation("ProductInMenus");
+                });
+
+            modelBuilder.Entity("PRN232.Lab1.CoffeeStore.Data.Entities.Product", b =>
+                {
+                    b.Navigation("ProductInMenus");
+                });
+#pragma warning restore 612, 618
+        }
+    }
+}
+
+```
+
+### PRN232.Lab1.CoffeeStore.Data\Migrations\20250915034424_change.cs
+```cs
+﻿using Microsoft.EntityFrameworkCore.Migrations;
+
+#nullable disable
+
+namespace PRN232.Lab1.CoffeeStore.Data.Migrations
+{
+    /// <inheritdoc />
+    public partial class change : Migration
+    {
+        /// <inheritdoc />
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.DropForeignKey(
+                name: "FK_Products_Categories_CategoryId1",
+                table: "Products");
+
+            migrationBuilder.DropIndex(
+                name: "IX_Products_CategoryId1",
+                table: "Products");
+
+            migrationBuilder.DropColumn(
+                name: "CategoryId1",
+                table: "Products");
+
+            migrationBuilder.AlterColumn<string>(
+                name: "CategoryId",
+                table: "Products",
+                type: "nvarchar(450)",
+                nullable: true,
+                oldClrType: typeof(int),
+                oldType: "int",
+                oldNullable: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Products_CategoryId",
+                table: "Products",
+                column: "CategoryId");
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_Products_Categories_CategoryId",
+                table: "Products",
+                column: "CategoryId",
+                principalTable: "Categories",
+                principalColumn: "CategoryId");
+        }
+
+        /// <inheritdoc />
+        protected override void Down(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.DropForeignKey(
+                name: "FK_Products_Categories_CategoryId",
+                table: "Products");
+
+            migrationBuilder.DropIndex(
+                name: "IX_Products_CategoryId",
+                table: "Products");
+
+            migrationBuilder.AlterColumn<int>(
+                name: "CategoryId",
+                table: "Products",
+                type: "int",
+                nullable: true,
+                oldClrType: typeof(string),
+                oldType: "nvarchar(450)",
+                oldNullable: true);
+
+            migrationBuilder.AddColumn<string>(
+                name: "CategoryId1",
+                table: "Products",
+                type: "nvarchar(450)",
+                nullable: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Products_CategoryId1",
+                table: "Products",
+                column: "CategoryId1");
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_Products_Categories_CategoryId1",
+                table: "Products",
+                column: "CategoryId1",
+                principalTable: "Categories",
+                principalColumn: "CategoryId");
+        }
+    }
+}
+
+```
+
+### PRN232.Lab1.CoffeeStore.Data\Migrations\20250915034424_change.Designer.cs
+```cs
+﻿// <auto-generated />
+using System;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using PRN232.Lab1.CoffeeStore.Data.Database;
+
+#nullable disable
+
+namespace PRN232.Lab1.CoffeeStore.Data.Migrations
+{
+    [DbContext(typeof(DatabaseContext))]
+    [Migration("20250915034424_change")]
+    partial class change
+    {
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
+        {
+#pragma warning disable 612, 618
+            modelBuilder
+                .HasAnnotation("ProductVersion", "8.0.11")
+                .HasAnnotation("Relational:MaxIdentifierLength", 128);
+
+            SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+
+            modelBuilder.Entity("PRN232.Lab1.CoffeeStore.Data.Entities.Category", b =>
+                {
+                    b.Property<string>("CategoryId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("CategoryId");
+
+                    b.ToTable("Categories");
+                });
+
+            modelBuilder.Entity("PRN232.Lab1.CoffeeStore.Data.Entities.Menu", b =>
+                {
+                    b.Property<string>("MenuId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("FromDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("ToDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("MenuId");
+
+                    b.ToTable("Menus");
+                });
+
+            modelBuilder.Entity("PRN232.Lab1.CoffeeStore.Data.Entities.Product", b =>
+                {
+                    b.Property<string>("ProductId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("CategoryId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal?>("Price")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("ProductId");
+
+                    b.HasIndex("CategoryId");
+
+                    b.ToTable("Products");
+                });
+
+            modelBuilder.Entity("PRN232.Lab1.CoffeeStore.Data.Entities.ProductInMenu", b =>
+                {
+                    b.Property<string>("ProductInMenuId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("MenuId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("ProductId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.HasKey("ProductInMenuId");
+
+                    b.HasIndex("MenuId");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("ProductInMenus");
+                });
+
+            modelBuilder.Entity("PRN232.Lab1.CoffeeStore.Data.Entities.Product", b =>
+                {
+                    b.HasOne("PRN232.Lab1.CoffeeStore.Data.Entities.Category", "Category")
+                        .WithMany("Products")
+                        .HasForeignKey("CategoryId");
+
+                    b.Navigation("Category");
+                });
+
+            modelBuilder.Entity("PRN232.Lab1.CoffeeStore.Data.Entities.ProductInMenu", b =>
+                {
+                    b.HasOne("PRN232.Lab1.CoffeeStore.Data.Entities.Menu", "Menu")
+                        .WithMany("ProductInMenus")
+                        .HasForeignKey("MenuId");
+
+                    b.HasOne("PRN232.Lab1.CoffeeStore.Data.Entities.Product", "Product")
+                        .WithMany("ProductInMenus")
+                        .HasForeignKey("ProductId");
+
+                    b.Navigation("Menu");
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("PRN232.Lab1.CoffeeStore.Data.Entities.Category", b =>
+                {
+                    b.Navigation("Products");
+                });
+
+            modelBuilder.Entity("PRN232.Lab1.CoffeeStore.Data.Entities.Menu", b =>
+                {
+                    b.Navigation("ProductInMenus");
+                });
+
+            modelBuilder.Entity("PRN232.Lab1.CoffeeStore.Data.Entities.Product", b =>
+                {
+                    b.Navigation("ProductInMenus");
+                });
+#pragma warning restore 612, 618
+        }
+    }
+}
+
+```
+
+### PRN232.Lab1.CoffeeStore.Data\Migrations\DatabaseContextModelSnapshot.cs
+```cs
+﻿// <auto-generated />
+using System;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using PRN232.Lab1.CoffeeStore.Data.Database;
+
+#nullable disable
+
+namespace PRN232.Lab1.CoffeeStore.Data.Migrations
+{
+    [DbContext(typeof(DatabaseContext))]
+    partial class DatabaseContextModelSnapshot : ModelSnapshot
+    {
+        protected override void BuildModel(ModelBuilder modelBuilder)
+        {
+#pragma warning disable 612, 618
+            modelBuilder
+                .HasAnnotation("ProductVersion", "8.0.11")
+                .HasAnnotation("Relational:MaxIdentifierLength", 128);
+
+            SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+
+            modelBuilder.Entity("PRN232.Lab1.CoffeeStore.Data.Entities.Category", b =>
+                {
+                    b.Property<string>("CategoryId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("CategoryId");
+
+                    b.ToTable("Categories", (string)null);
+                });
+
+            modelBuilder.Entity("PRN232.Lab1.CoffeeStore.Data.Entities.Menu", b =>
+                {
+                    b.Property<string>("MenuId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("FromDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("ToDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("MenuId");
+
+                    b.ToTable("Menus", (string)null);
+                });
+
+            modelBuilder.Entity("PRN232.Lab1.CoffeeStore.Data.Entities.Product", b =>
+                {
+                    b.Property<string>("ProductId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("CategoryId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal?>("Price")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("ProductId");
+
+                    b.HasIndex("CategoryId");
+
+                    b.ToTable("Products", (string)null);
+                });
+
+            modelBuilder.Entity("PRN232.Lab1.CoffeeStore.Data.Entities.ProductInMenu", b =>
+                {
+                    b.Property<string>("ProductInMenuId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("MenuId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("ProductId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.HasKey("ProductInMenuId");
+
+                    b.HasIndex("MenuId");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("ProductInMenus", (string)null);
+                });
+
+            modelBuilder.Entity("PRN232.Lab1.CoffeeStore.Data.Entities.Product", b =>
+                {
+                    b.HasOne("PRN232.Lab1.CoffeeStore.Data.Entities.Category", "Category")
+                        .WithMany("Products")
+                        .HasForeignKey("CategoryId");
+
+                    b.Navigation("Category");
+                });
+
+            modelBuilder.Entity("PRN232.Lab1.CoffeeStore.Data.Entities.ProductInMenu", b =>
+                {
+                    b.HasOne("PRN232.Lab1.CoffeeStore.Data.Entities.Menu", "Menu")
+                        .WithMany("ProductInMenus")
+                        .HasForeignKey("MenuId");
+
+                    b.HasOne("PRN232.Lab1.CoffeeStore.Data.Entities.Product", "Product")
+                        .WithMany("ProductInMenus")
+                        .HasForeignKey("ProductId");
+
+                    b.Navigation("Menu");
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("PRN232.Lab1.CoffeeStore.Data.Entities.Category", b =>
+                {
+                    b.Navigation("Products");
+                });
+
+            modelBuilder.Entity("PRN232.Lab1.CoffeeStore.Data.Entities.Menu", b =>
+                {
+                    b.Navigation("ProductInMenus");
+                });
+
+            modelBuilder.Entity("PRN232.Lab1.CoffeeStore.Data.Entities.Product", b =>
+                {
+                    b.Navigation("ProductInMenus");
+                });
+#pragma warning restore 612, 618
+        }
+    }
+}
+
+```
+
+### PRN232.Lab1.CoffeeStore.Data\Models\Category.cs
+```cs
+﻿namespace PRN232.Lab1.CoffeeStore.Data.Entities
+{
+    public class Category
+    {
+        public string CategoryId { get; set; } = Guid.NewGuid().ToString();
+        public string? Name { get; set; }
+        public string? Description { get; set; }
+
+        public ICollection<Product>? Products { get; set; }
+    }
+}
+
+```
+
+### PRN232.Lab1.CoffeeStore.Data\Models\Menu.cs
+```cs
+﻿namespace PRN232.Lab1.CoffeeStore.Data.Entities
+{
+    public class Menu
+    {
+        public string MenuId { get; set; } = Guid.NewGuid().ToString();
+        public string? Name { get; set; }
+        public DateTime FromDate { get; set; }
+        public DateTime ToDate { get; set; }
+
+        public ICollection<ProductInMenu>? ProductInMenus { get; set; }
+    }
+}
+
+```
+
+### PRN232.Lab1.CoffeeStore.Data\Models\Product.cs
+```cs
+﻿namespace PRN232.Lab1.CoffeeStore.Data.Entities
+{
+    public class Product
+    {
+        public string ProductId { get; set; } = Guid.NewGuid().ToString();
+
+        public string? Name { get; set; }
+        public decimal? Price { get; set; }
+        public string? Description { get; set; }
+        public string? CategoryId { get; set; }
+        public Category? Category { get; set; }
+
+        public ICollection<ProductInMenu>? ProductInMenus { get; set; }
+    }
+}
+
+```
+
+### PRN232.Lab1.CoffeeStore.Data\Models\ProductInMenu.cs
+```cs
+﻿namespace PRN232.Lab1.CoffeeStore.Data.Entities
+{
+    public class ProductInMenu
+    {
+        public string ProductInMenuId { get; set; } = Guid.NewGuid().ToString();
+        public string? ProductId { get; set; }
+        public Product? Product { get; set; }
+        public string? MenuId { get; set; }
+        public Menu? Menu { get; set; }
+        public int Quantity { get; set; }
+    }
+}
+
+```
+
+### PRN232.Lab1.CoffeeStore.Data\Repository\GenericRepository.cs
+```cs
+﻿using Microsoft.EntityFrameworkCore;
+using PRN232.Lab1.CoffeeStore.Data.Database;
+using PRN232.Lab1.CoffeeStore.Data.Interfaces;
+using System.Linq.Expressions;
+
+namespace PRN232.Lab1.CoffeeStore.Data.Repository
+{
+    public class GenericRepository<T> : IGenericRepository<T> where T : class
+    {
+        protected readonly DatabaseContext _context;
+        protected readonly DbSet<T> _dbSet;
+        private const string _timeZone = "Asia/Ho_Chi_Minh";
+
+        public GenericRepository(DatabaseContext context)
+        {
+            _context = context;
+            _dbSet = _context.Set<T>();
+        }
+
+        public IQueryable<T> Entities => _dbSet;
+
+        // Non-async methods
+        public IEnumerable<T> GetAll()
+        {
+            return _dbSet.ToList();
+        }
+
+        public T? GetById(object id)
+        {
+            return _dbSet.Find(id);
+        }
+
+        public IEnumerable<T> Find(Expression<Func<T, bool>> predicate)
+        {
+            return _dbSet.Where(predicate).ToList();
+        }
+
+        public IEnumerable<T> Find(Expression<Func<T, bool>> predicate, Func<IQueryable<T>, IOrderedQueryable<T>> orderBy)
+        {
+            return orderBy(_dbSet.Where(predicate)).ToList();
+        }
+
+        public IEnumerable<TResult> Find<TResult>(
+            Expression<Func<T, bool>>? predicate,
+            Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy,
+            Expression<Func<T, TResult>> selector)
+        {
+            IQueryable<T> query = _dbSet;
+
+            if (predicate != null)
+            {
+                query = query.Where(predicate);
+            }
+
+            if (orderBy != null)
+            {
+                query = orderBy(query);
+            }
+
+            return query.Select(selector).ToList();
+        }
+
+        //public PagedResult<T> FindWithPaging(
+        //    Expression<Func<T, bool>>? predicate,
+        //    Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy,
+        //    int pageNumber,
+        //    int pageSize)
+        //{
+        //    IQueryable<T> query = _dbSet;
+
+        //    if (predicate != null)
+        //    {
+        //        query = query.Where(predicate);
+        //    }
+
+        //    int totalItems = query.Count();
+
+        //    if (orderBy != null)
+        //    {
+        //        query = orderBy(query);
+        //    }
+
+        //    var pagedData = query
+        //        .Skip((pageNumber - 1) * pageSize)
+        //        .Take(pageSize)
+        //        .ToList();
+
+        //    return new PagedResult<T>(pagedData, pageNumber, pageSize, totalItems);
+        //}
+        public void Add(T entity)
+        {
+            _dbSet.Add(entity);
+        }
+
+        public void AddRange(IEnumerable<T> entities)
+        {
+            _dbSet.AddRange(entities);
+        }
+
+        public void Update(T entity)
+        {
+            _dbSet.Attach(entity);
+            _context.Entry(entity).State = EntityState.Modified;
+        }
+
+        public void Delete(T entity)
+        {
+            _dbSet.Remove(entity);
+        }
+
+        public void DeleteRange(IEnumerable<T> entities)
+        {
+            _dbSet.RemoveRange(entities);
+        }
+
+        // Async methods
+        public async Task<IEnumerable<T>> GetAllAsync()
+        {
+            return await _dbSet.ToListAsync();
+        }
+
+        public async Task<T?> GetByIdAsync(object id)
+        {
+            return await _dbSet.FindAsync(id);
+        }
+
+        public async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate)
+        {
+            return await _dbSet.Where(predicate).ToListAsync();
+        }
+
+        public async Task<IEnumerable<T>> FindAsync(
+            Expression<Func<T, bool>> predicate,
+            Func<IQueryable<T>, IOrderedQueryable<T>> orderBy)
+        {
+            return await orderBy(_dbSet.Where(predicate)).ToListAsync();
+        }
+
+        public async Task<IEnumerable<TResult>> FindAsync<TResult>(
+            Expression<Func<T, bool>>? predicate,
+            Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy,
+            Expression<Func<T, TResult>> selector)
+        {
+            IQueryable<T> query = _dbSet;
+
+            if (predicate != null)
+            {
+                query = query.Where(predicate);
+            }
+
+            if (orderBy != null)
+            {
+                query = orderBy(query);
+            }
+
+            return await query.Select(selector).ToListAsync();
+        }
+
+        //public async Task<PagedResult<T>> FindWithPagingAsync(
+        //    Expression<Func<T, bool>>? predicate,
+        //    Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy,
+        //    int pageNumber,
+        //    int pageSize)
+        //{
+        //    IQueryable<T> query = _dbSet;
+
+        //    if (predicate != null)
+        //    {
+        //        query = query.Where(predicate);
+        //    }
+
+        //    int totalItems = await query.CountAsync();
+
+        //    if (orderBy != null)
+        //    {
+        //        query = orderBy(query);
+        //    }
+
+        //    var pagedData = await query
+        //        .Skip((pageNumber - 1) * pageSize)
+        //        .Take(pageSize)
+        //        .ToListAsync();
+
+        //    return new PagedResult<T>(pagedData, pageNumber, pageSize, totalItems);
+        //}
+
+        public async Task AddAsync(T entity)
+        {
+            await _dbSet.AddAsync(entity);
+        }
+
+        public async Task AddRangeAsync(IEnumerable<T> entities)
+        {
+            await _dbSet.AddRangeAsync(entities);
+        }
+
+        public async Task UpdateAsync(T entity)
+        {
+            _dbSet.Attach(entity);
+            _context.Entry(entity).State = EntityState.Modified;
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task DeleteAsync(T entity)
+        {
+            _dbSet.Remove(entity);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task DeleteRangeAsync(IEnumerable<T> entities)
+        {
+            _dbSet.RemoveRange(entities);
+            await _context.SaveChangesAsync();
+        }
+
+        public IEnumerable<TResult> Find<TResult>(
+            Expression<Func<T, bool>>? predicate,
+            Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy,
+            Expression<Func<T, TResult>> selector,
+            int pageIndex = 0, int pageSize = 10)
+        {
+            IQueryable<T> query = _dbSet;
+
+            if (predicate != null)
+                query = query.Where(predicate);
+
+            if (orderBy != null)
+                query = orderBy(query);
+
+            query = query.Skip((pageIndex - 1) * pageSize).Take(pageSize);
+
+            return query.Select(selector).ToList();
+        }
+
+        public async Task<IEnumerable<TResult>> FindAsync<TResult>(
+            Expression<Func<T, bool>>? predicate,
+            Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy,
+            Expression<Func<T, TResult>> selector,
+            int pageIndex = 0,
+            int pageSize = 10)
+        {
+            IQueryable<T> query = _dbSet;
+
+            if (predicate != null)
+                query = query.Where(predicate);
+
+            if (orderBy != null)
+                query = orderBy(query);
+
+            query = query.Skip((pageIndex - 1) * pageSize).Take(pageSize);
+
+            return await query.Select(selector).ToListAsync();
+        }
+
+        public async Task SaveChangeAsync()
+        {
+            await _context.SaveChangesAsync();
+        }
+    }
+}
+
+```
+
+### PRN232.Lab1.CoffeeStore.Data\Repository\MenuRepository.cs
+```cs
+﻿using PRN232.Lab1.CoffeeStore.Data.Database;
+using PRN232.Lab1.CoffeeStore.Data.Entities;
+using PRN232.Lab1.CoffeeStore.Data.Interfaces;
+
+namespace PRN232.Lab1.CoffeeStore.Data.Repository
+{
+    public class MenuRepository : GenericRepository<Menu>, IMenuRepository
+    {
+        public MenuRepository(DatabaseContext context) : base(context)
+        {
+        }
+    }
+}
+
+```
+
+### PRN232.Lab1.CoffeeStore.Data\Repository\ProductInMenuRepository.cs
+```cs
+﻿using PRN232.Lab1.CoffeeStore.Data.Database;
+using PRN232.Lab1.CoffeeStore.Data.Entities;
+using PRN232.Lab1.CoffeeStore.Data.Interfaces;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace PRN232.Lab1.CoffeeStore.Data.Repository
+{
+    public class ProductInMenuRepository: GenericRepository<ProductInMenu>, IProductInMenuRepository
+    {
+        public ProductInMenuRepository(DatabaseContext context) : base(context)
+        {
+        }
+    }
+}
+
+```
+
+### PRN232.Lab1.CoffeeStore.Data\Repository\ProductRepository.cs
+```cs
+﻿using PRN232.Lab1.CoffeeStore.Data.Database;
+using PRN232.Lab1.CoffeeStore.Data.Entities;
+using PRN232.Lab1.CoffeeStore.Data.Interfaces;
+
+namespace PRN232.Lab1.CoffeeStore.Data.Repository
+{
+    public class ProductRepository : GenericRepository<Product>, IProductRepository
+    {
+        public ProductRepository(DatabaseContext context) : base(context)
+        {
+        }
+    }
+}
+
+```
+
+### PRN232.Lab1.CoffeeStore.Service\Interfaces\IMenuService.cs
+```cs
+﻿using PRN232.Lab1.CoffeeStore.Data.Entities;
+using PRN232.Lab1.CoffeeStore.Service.RequestModels;
+
+namespace PRN232.Lab1.CoffeeStore.Service.Interfaces
+{
+    public interface IMenuService
+    {
+        Task<Menu> CreateMenuAsync(MenuRequestModel request);
+        Task<IEnumerable<Menu>> GetAllMenusAsync();
+        Task<Menu?> GetMenuByIdAsync(string? menuId);
+        Task<Menu?> UpdateMenuAsync(string id, MenuRequestModel request);
+        Task<bool> DeleteMenuAsync(string menuId);
+    }
+}
+
+```
+
+### PRN232.Lab1.CoffeeStore.Service\Interfaces\IProductInMenuService.cs
+```cs
+﻿using PRN232.Lab1.CoffeeStore.Data.Entities;
+using PRN232.Lab1.CoffeeStore.Service.RequestModels;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace PRN232.Lab1.CoffeeStore.Service.Interfaces
+{
+    public interface IProductInMenuService
+    {
+        Task<ProductInMenu> CreateProductInMenuAsync(ProductInMenuRequestModel request);
+        Task<List<ProductInMenu>> GetProductsInMenuAsync(string? menuId);
+        Task DeleteProductFromMenuAsync(string productInMenuId);
+        Task UpdateProductInMenuAsync(string productInMenuId, ProductInMenuRequestModel request);
+    }
+}
+
+```
+
+### PRN232.Lab1.CoffeeStore.Service\Interfaces\IProductService.cs
+```cs
+﻿using PRN232.Lab1.CoffeeStore.Data.Entities;
+using PRN232.Lab1.CoffeeStore.Service.RequestModels;
+
+namespace PRN232.Lab1.CoffeeStore.Service.Interfaces
+{
+    public interface IProductService
+    {
+        Task<Product> CreatProductAsync(ProductRequestModel request);
+        Task<List<Product>> GetAllProductsAsync();
+        Task<Product?> GetProductByIdAsync(string productId);
+        Task<Product?> UpdateProductAsync(string id, ProductRequestModel request);
+        Task DeleteProductAsync(string productId);
+    }
+}
+
+```
+
+### PRN232.Lab1.CoffeeStore.Service\RequestModels\MenuRequestModel.cs
+```cs
+﻿using PRN232.Lab1.CoffeeStore.Data.Entities;
+
+namespace PRN232.Lab1.CoffeeStore.Service.RequestModels
+{
+    public class MenuRequestModel
+    {
+        public string? Name { get; set; }
+        public string? FromDate { get; set; }
+        public string? ToDate { get; set; }
+    }
+}
+
+```
+
+### PRN232.Lab1.CoffeeStore.Service\RequestModels\ProductInMenuRequestModel.cs
+```cs
+﻿using PRN232.Lab1.CoffeeStore.Data.Entities;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace PRN232.Lab1.CoffeeStore.Service.RequestModels
+{
+    public class ProductInMenuRequestModel
+    {
+        public string? ProductId { get; set; }
+        public string? MenuId { get; set; }
+        public int Quantity { get; set; }
+    }
+}
+
+```
+
+### PRN232.Lab1.CoffeeStore.Service\RequestModels\ProductRequestModel.cs
+```cs
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace PRN232.Lab1.CoffeeStore.Service.RequestModels
+{
+    public class ProductRequestModel
+    {
+        public string? Name { get; set; }
+        public decimal? Price { get; set; }
+        public string? Description { get; set; }
+        public string? CategoryId { get; set; }
+    }
+}
+
+```
+
+### PRN232.Lab1.CoffeeStore.Service\Services\MenuService.cs
+```cs
+﻿using PRN232.Lab1.CoffeeStore.Data.Entities;
+using PRN232.Lab1.CoffeeStore.Data.Interfaces;
+using PRN232.Lab1.CoffeeStore.Service.Interfaces;
+using PRN232.Lab1.CoffeeStore.Service.RequestModels;
+using PRN232.Lab1.CoffeeStore.Service.Validations;
+
+namespace PRN232.Lab1.CoffeeStore.Service.Services
+{
+    public class MenuService : IMenuService
+    {
+        private readonly IMenuRepository repo;
+
+        public MenuService(IMenuRepository repo)
+        {
+            this.repo = repo;
+        }
+
+        public async Task<Menu> CreateMenuAsync(MenuRequestModel request)
+        {
+            // Validate name
+            MenuValidation.NameValid(request.Name);
+            // Validate date
+            DateTime fromDate = MenuValidation.DateCheck(request.FromDate);
+            DateTime toDate = MenuValidation.DateCheck(request.ToDate);
+
+            if(fromDate > toDate)
+            {
+                throw new Exception("From date must be before to date");
+            }
+
+            Menu menu = new()
+            {
+                FromDate = fromDate,
+                ToDate = toDate,
+                Name = request.Name
+            };
+            await repo.AddAsync(menu);
+            await repo.SaveChangeAsync();
+            return menu;
+        }
+
+        public async Task<IEnumerable<Menu>> GetAllMenusAsync()
+        {
+            var menus = await repo.GetAllAsync();
+            return menus;
+        }
+
+        public async Task<Menu?> GetMenuByIdAsync(string? menuId)
+        {
+            if (string.IsNullOrWhiteSpace(menuId))
+            {
+                throw new Exception("Id not null");
+            }
+            var menu = await repo.GetByIdAsync(menuId) ?? throw new Exception("Id not found");
+
+            return menu;
+        }
+
+        public async Task<Menu?> UpdateMenuAsync(string id,MenuRequestModel request)
+        {
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                throw new Exception("Id not null");
+            }
+            var menu = await repo.GetByIdAsync(id) ?? throw new Exception("Id not found");
+
+            // Validate updated properties
+            MenuValidation.NameValid(request.Name);
+
+            DateTime fromDate = MenuValidation.DateCheck(request.FromDate);
+            DateTime toDate = MenuValidation.DateCheck(request.ToDate);
+
+            menu.Name = request.Name;
+            menu.FromDate = fromDate;
+            menu.ToDate = toDate;
+
+            repo.Update(menu);
+            await repo.SaveChangeAsync();
+
+            return menu;
+        }
+
+        public async Task<bool> DeleteMenuAsync(string menuId)
+        {
+            var menu = await repo.GetByIdAsync(menuId) ?? throw new Exception("Id not found");
+            if (menu == null)
+            {
+                return false;
+            }
+            await repo.DeleteAsync(menu);
+            await repo.SaveChangeAsync();
+            return true;
+        }
+    }
+}
+
+```
+
+### PRN232.Lab1.CoffeeStore.Service\Services\ProductInMenuService.cs
+```cs
+﻿using Microsoft.EntityFrameworkCore;
+using PRN232.Lab1.CoffeeStore.Data.Database;
+using PRN232.Lab1.CoffeeStore.Data.Entities;
+using PRN232.Lab1.CoffeeStore.Data.Interfaces;
+using PRN232.Lab1.CoffeeStore.Service.Interfaces;
+using PRN232.Lab1.CoffeeStore.Service.RequestModels;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace PRN232.Lab1.CoffeeStore.Service.Services
+{
+    public class ProductInMenuService: IProductInMenuService
+    {
+        private readonly IProductInMenuRepository _productMenuRepo;
+        private readonly IProductRepository _productRepo;
+        private readonly IMenuRepository _menuRepo;
+
+        public ProductInMenuService(IProductInMenuRepository productMenuRepo, IProductRepository productRepo, IMenuRepository menuRepo)
+        {
+            _productMenuRepo = productMenuRepo;
+            _productRepo = productRepo;
+            _menuRepo = menuRepo;
+        }
+
+        public async Task<ProductInMenu> CreateProductInMenuAsync(ProductInMenuRequestModel request)
+        {
+            if(string.IsNullOrWhiteSpace(request.ProductId) || string.IsNullOrWhiteSpace(request.MenuId))
+            {
+                               throw new Exception("ProductId and MenuId cannot be null or empty");
+            }
+            if(request.Quantity <= 0)
+            {
+                throw new Exception("Quantity must be greater than zero");
+            }
+            var product = await _productRepo.GetByIdAsync(request.ProductId) ?? throw new Exception("Product not found");
+            var menu = await _menuRepo.GetByIdAsync(request.MenuId) ?? throw new Exception("Menu not found");
+
+            var pim = new ProductInMenu
+            {
+                ProductId = request.ProductId,
+                MenuId = request.MenuId,
+                Quantity = request.Quantity
+            };
+
+            await _productMenuRepo.AddAsync(pim);
+            await _productMenuRepo.SaveChangeAsync();
+
+            return pim;
+        }
+
+        public async Task<List<ProductInMenu>> GetProductsInMenuAsync(string? menuId)
+        {
+            var list = await _productMenuRepo.FindAsync(pim => pim.MenuId == menuId);
+            return list.ToList();
+
+        }
+
+        public async Task DeleteProductFromMenuAsync(string productInMenuId)
+        {
+            var pim = await _productMenuRepo.GetByIdAsync(productInMenuId);
+            if (pim == null) throw new Exception("Not found");
+            await _productMenuRepo.DeleteAsync(pim);
+            await _productMenuRepo.SaveChangeAsync();
+        }
+
+        public async Task UpdateProductInMenuAsync(string productInMenuId, ProductInMenuRequestModel request)
+        {
+            var pim = await _productMenuRepo.GetByIdAsync(productInMenuId);
+            if (pim == null) throw new Exception("Not found");
+            pim.Quantity = request.Quantity;
+            pim.ProductId = request.ProductId;
+            pim.MenuId = request.MenuId;
+            await _productMenuRepo.UpdateAsync(pim);
+            await _productMenuRepo.SaveChangeAsync();
+        }
+    }
+}
+
+```
+
+### PRN232.Lab1.CoffeeStore.Service\Services\ProductService.cs
+```cs
+﻿using PRN232.Lab1.CoffeeStore.Data.Entities;
+using PRN232.Lab1.CoffeeStore.Data.Interfaces;
+using PRN232.Lab1.CoffeeStore.Service.Interfaces;
+using PRN232.Lab1.CoffeeStore.Service.RequestModels;
+using PRN232.Lab1.CoffeeStore.Service.Validations;
+
+namespace PRN232.Lab1.CoffeeStore.Service.Services
+{
+    public class ProductService : IProductService
+    {
+        private readonly IProductRepository repo;
+
+        public ProductService(IProductRepository repo)
+        {
+            this.repo = repo;
+        }
+
+        public async Task<Product> CreatProductAsync(ProductRequestModel request)
+        {
+            if (string.IsNullOrWhiteSpace(request.CategoryId))
+            {
+                throw new Exception("CategoryId is not null");
+            }
+            // check vallid 
+            ProductValidation.ValidatPrice(request.Price);
+            ProductValidation.ValidateName(request.Name);
+            ProductValidation.ValidateDescription(request.Description);
+
+            Product product = new()
+            {
+                Description = request.Description,
+                Name = request.Name,
+                Price = request.Price,
+                CategoryId = request.CategoryId
+            };
+
+            await repo.AddAsync(product);
+            await repo.SaveChangeAsync();
+
+            return product;
+        }
+        public async Task<List<Product>> GetAllProductsAsync()
+        {
+            var products = await repo.GetAllAsync();
+            return products.ToList();
+        }
+        public async Task<Product?> GetProductByIdAsync(string productId)
+        {
+            var product = await repo.GetByIdAsync(productId) ?? throw new Exception("Id not found"); ;
+            return product;
+        }
+        public async Task<Product?> UpdateProductAsync(string id, ProductRequestModel request)
+        {
+            var product = await repo.GetByIdAsync(id) ?? throw new Exception("Id not found"); ;
+
+            // Validation nếu cần
+            if (request.Price != null)
+                ProductValidation.ValidatPrice(request.Price);
+            if (!string.IsNullOrWhiteSpace(request.Name))
+                ProductValidation.ValidateName(request.Name);
+            if (!string.IsNullOrWhiteSpace(request.Description))
+                ProductValidation.ValidateDescription(request.Description);
+
+            // Cập nhật
+            product.Name = request.Name ?? product.Name;
+            product.Price = request.Price ?? product.Price;
+            product.Description = request.Description ?? product.Description;
+            product.CategoryId = request.CategoryId ?? product.CategoryId;
+
+            await repo.UpdateAsync(product);
+            await repo.SaveChangeAsync();
+
+            return product;
+        }
+        public async Task DeleteProductAsync(string productId)
+        {
+            var product = await repo.GetByIdAsync(productId) ?? throw new Exception("Id not found");
+            await repo.DeleteAsync(product);
+            await repo.SaveChangeAsync();
+        }
+
+    }
+}
+
+```
+
+### PRN232.Lab1.CoffeeStore.Service\Validations\MenuValidation.cs
+```cs
+﻿using System.Text.RegularExpressions;
+
+namespace PRN232.Lab1.CoffeeStore.Service.Validations
+{
+    public class MenuValidation
+    {
+
+        public static void NameValid(string? name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                throw new Exception("name is not null");
+            }
+            string? pattern = @"^[a-zA-Z0-9\s]*$";
+            if (!Regex.IsMatch(name, pattern))
+            {
+                throw new Exception("name is allowed special character");
+            }
+            if (name.Length > 100)
+            {
+                throw new ArgumentException("name cannot exceed 100 characters.");
+            }
+        }
+
+        public static DateTime DateCheck(string? input)
+        {
+            bool isValid = DateTime.TryParseExact(input, "dd-MM-yyyy",
+                                                  System.Globalization.CultureInfo.InvariantCulture,
+                                                  System.Globalization.DateTimeStyles.None,
+                                                  out DateTime dateValue);
+
+            if (!isValid)
+            {
+                throw new Exception("Invalid date format dd-MM-yyyy");
+            }
+            return dateValue;
+        }
+    }
+}
+
+```
+
+### PRN232.Lab1.CoffeeStore.Service\Validations\ProductValidation.cs
+```cs
+﻿using System.Text.RegularExpressions;
+
+namespace PRN232.Lab1.CoffeeStore.Service.Validations
+{
+    public class ProductValidation
+    {
+        public static void ValidateName(string? name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                throw new Exception("name is not null");
+            }
+            if (name.Length > 100)
+            {
+                throw new Exception("Product name cannot exceed 100 characters.");
+            }
+            string? pattern = @"^[a-zA-Z0-9\s]*$";
+            if (!Regex.IsMatch(name, pattern))
+            {
+                throw new Exception("name is allowed special character");
+            }
+        }
+
+        public static void ValidateDescription(string? descrip)
+        {
+            if (!string.IsNullOrWhiteSpace(descrip) && descrip.Length > 100)
+            {
+                throw new Exception("Description cannot exceed 100 characters.");
+            }
+        }
+        public static void ValidatPrice(decimal? price)
+        {
+            if (price < 0)
+            {
+                throw new Exception("Price can not less than 0");
+            }
+        }
+    }
+}
+
+```
