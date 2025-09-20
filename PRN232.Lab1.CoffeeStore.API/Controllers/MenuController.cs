@@ -1,6 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Mvc;
 using PRN232.Lab1.CoffeeStore.Service.Interfaces;
-using PRN232.Lab1.CoffeeStore.Service.RequestModels;
+using PRN232.Lab1.CoffeeStore.Service.Models;
 
 namespace PRN232.Lab1.CoffeeStore.API.Controllers
 {
@@ -9,6 +10,7 @@ namespace PRN232.Lab1.CoffeeStore.API.Controllers
     public class MenuController : ControllerBase
     {
         private readonly IMenuService _service;
+
         public MenuController(IMenuService service)
         {
             _service = service;
@@ -40,8 +42,8 @@ namespace PRN232.Lab1.CoffeeStore.API.Controllers
         {
             try
             {
-                var menu = await _service.CreateMenuAsync(request);
-                return CreatedAtAction(nameof(GetById), new { id = menu.MenuId }, menu);
+                await _service.CreateMenuAsync(request);
+                return Ok("Update Successfully");
             }
             catch (Exception e)
             {
@@ -54,8 +56,8 @@ namespace PRN232.Lab1.CoffeeStore.API.Controllers
         {
             try
             {
-                var updated = await _service.UpdateMenuAsync(id, request);
-                return Ok(updated);
+                await _service.UpdateMenuAsync(id, request);
+                return Ok("Update Successfully");
             }
             catch (Exception e)
             {
@@ -68,10 +70,8 @@ namespace PRN232.Lab1.CoffeeStore.API.Controllers
         {
             try
             {
-                // Nếu xóa thành công trả NoContent
-                var result = await _service.DeleteMenuAsync(id);
-                if (result) return NoContent();
-                return NotFound("Menu not found");
+                await _service.DeleteMenuAsync(id);
+                return Ok("Delete Successfully");
             }
             catch (Exception e)
             {

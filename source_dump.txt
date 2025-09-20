@@ -7,11 +7,18 @@
 ## CẤU TRÚC THƯ MỤC
 ```
 PRN232.Lab1.CoffeeStore/
+├── .git/
+├── .github/
 ├── .vs/
 ├── PRN232.Lab1.CoffeeStore.API/
 │   ├── Controllers/
 │   │   ├── MenuController.cs
 │   │   └── ProductController.cs
+│   ├── Mapping/
+│   │   └── MappingProfile.cs
+│   ├── Models/
+│   │   ├── MenuModel.cs
+│   │   └── ProductModel.cs
 │   ├── Properties/
 │   │   └── launchSettings.json
 │   ├── bin/
@@ -50,15 +57,12 @@ PRN232.Lab1.CoffeeStore/
 ├── PRN232.Lab1.CoffeeStore.Service/
 │   ├── Interfaces/
 │   │   ├── IMenuService.cs
-│   │   ├── IProductInMenuService.cs
 │   │   └── IProductService.cs
 │   ├── RequestModels/
 │   │   ├── MenuRequestModel.cs
-│   │   ├── ProductInMenuRequestModel.cs
 │   │   └── ProductRequestModel.cs
 │   ├── Services/
 │   │   ├── MenuService.cs
-│   │   ├── ProductInMenuService.cs
 │   │   └── ProductService.cs
 │   ├── Validations/
 │   │   ├── MenuValidation.cs
@@ -67,9 +71,11 @@ PRN232.Lab1.CoffeeStore/
 │   ├── obj/
 │   └── PRN232.Lab1.CoffeeStore.Service.csproj
 ├── .dockerignore
+├── .gitignore
 ├── Dockerfile
 ├── PRN232.Lab1.CoffeeStore.sln
-└── docker-compose.yml
+├── docker-compose.yml
+└── source_dump.txt
 ```
 
 ## NỘI DUNG CÁC FILE
@@ -102,7 +108,9 @@ builder.Services.AddScoped<IMenuRepository, MenuRepository>();
 builder.Services.AddScoped<IProductInMenuRepository, ProductInMenuRepository>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IMenuService, MenuService>();
-builder.Services.AddScoped<IProductInMenuService, ProductInMenuService>();
+
+builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+
 var app = builder.Build();
 
 
@@ -122,7 +130,10 @@ app.Run();
 
 ### PRN232.Lab1.CoffeeStore.API\Controllers\MenuController.cs
 ```cs
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Mvc;
+using PRN232.Lab1.CoffeeStore.API.Models;
+using PRN232.Lab1.CoffeeStore.Data.Entities;
 using PRN232.Lab1.CoffeeStore.Service.Interfaces;
 using PRN232.Lab1.CoffeeStore.Service.RequestModels;
 
@@ -133,15 +144,19 @@ namespace PRN232.Lab1.CoffeeStore.API.Controllers
     public class MenuController : ControllerBase
     {
         private readonly IMenuService _service;
-        public MenuController(IMenuService service)
+        private readonly IMapper _mapper;
+
+        public MenuController(IMenuService service, IMapper mapper)
         {
             _service = service;
+            _mapper = mapper;
         }
 
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
             var menus = await _service.GetAllMenusAsync();
+            var mappedMenus = _mapper.Map<List<MenuModel>>(menus);
             return Ok(menus);
         }
 
@@ -151,7 +166,8 @@ namespace PRN232.Lab1.CoffeeStore.API.Controllers
             try
             {
                 var menu = await _service.GetMenuByIdAsync(id);
-                return Ok(menu);
+                var result = _mapper.Map<MenuModel>(menu);
+                return Ok(result);
             }
             catch (Exception e)
             {
@@ -165,7 +181,8 @@ namespace PRN232.Lab1.CoffeeStore.API.Controllers
             try
             {
                 var menu = await _service.CreateMenuAsync(request);
-                return CreatedAtAction(nameof(GetById), new { id = menu.MenuId }, menu);
+                var result = _mapper.Map<MenuModel>(menu);
+                return Ok(result);
             }
             catch (Exception e)
             {
@@ -179,7 +196,8 @@ namespace PRN232.Lab1.CoffeeStore.API.Controllers
             try
             {
                 var updated = await _service.UpdateMenuAsync(id, request);
-                return Ok(updated);
+                var result = _mapper.Map<MenuModel>(updated);
+                return Ok(result);
             }
             catch (Exception e)
             {
@@ -192,9 +210,8 @@ namespace PRN232.Lab1.CoffeeStore.API.Controllers
         {
             try
             {
-                // Nếu xóa thành công trả NoContent
                 var result = await _service.DeleteMenuAsync(id);
-                if (result) return NoContent();
+                if (result) return Ok();
                 return NotFound("Menu not found");
             }
             catch (Exception e)
@@ -209,7 +226,9 @@ namespace PRN232.Lab1.CoffeeStore.API.Controllers
 
 ### PRN232.Lab1.CoffeeStore.API\Controllers\ProductController.cs
 ```cs
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Mvc;
+using PRN232.Lab1.CoffeeStore.API.Models;
 using PRN232.Lab1.CoffeeStore.Service.Interfaces;
 using PRN232.Lab1.CoffeeStore.Service.RequestModels;
 
@@ -220,16 +239,20 @@ namespace PRN232.Lab1.CoffeeStore.API.Controllers
     public class ProductController : ControllerBase
     {
         private readonly IProductService _service;
-        public ProductController(IProductService service)
+        private readonly IMapper _mapper;
+
+        public ProductController(IProductService service, IMapper mapper)
         {
             _service = service;
+            _mapper = mapper;
         }
 
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
             var result = await _service.GetAllProductsAsync();
-            return Ok(result);
+            var mappedResult = _mapper.Map<List<ProductModel>>(result);
+            return Ok(mappedResult);
         }
 
         [HttpGet("{id}")]
@@ -238,7 +261,8 @@ namespace PRN232.Lab1.CoffeeStore.API.Controllers
             try
             {
                 var product = await _service.GetProductByIdAsync(id);
-                return Ok(product);
+                var result = _mapper.Map<ProductModel>(product);    
+                return Ok(result);
             }
             catch (Exception e)
             {
@@ -252,7 +276,8 @@ namespace PRN232.Lab1.CoffeeStore.API.Controllers
             try
             {
                 var product = await _service.CreatProductAsync(request);
-                return CreatedAtAction(nameof(GetById), new { id = product.ProductId }, product);
+                var result = _mapper.Map<ProductModel>(product);
+                return Ok(result);
             }
             catch (Exception e)
             {
@@ -261,11 +286,13 @@ namespace PRN232.Lab1.CoffeeStore.API.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(string id, [FromBody] ProductRequestModel request)
+        public async Task<IActionResult> Update([FromBody] ProductRequestModel request)
         {
             try
             {
-                var updated = await _service.UpdateProductAsync(id, request);
+                var updated = await _service.UpdateProductAsync(request);
+                var result = _mapper.Map<ProductModel>(updated);
+
                 return Ok(updated);
             }
             catch (Exception e)
@@ -280,13 +307,62 @@ namespace PRN232.Lab1.CoffeeStore.API.Controllers
             try
             {
                 await _service.DeleteProductAsync(id);
-                return NoContent();
+                return Ok();
             }
             catch (Exception e)
             {
                 return NotFound(e.Message);
             }
         }
+    }
+}
+
+```
+
+### PRN232.Lab1.CoffeeStore.API\Mapping\MappingProfile.cs
+```cs
+﻿using AutoMapper;
+using PRN232.Lab1.CoffeeStore.API.Models;
+using PRN232.Lab1.CoffeeStore.Service.RequestModels;
+
+namespace PRN232.Lab1.CoffeeStore.API.Mapping
+{
+    public class MappingProfile :Profile
+    {
+        public MappingProfile()
+        {
+            CreateMap<MenuModel, MenuRequestModel>();
+        }
+    }
+}
+
+```
+
+### PRN232.Lab1.CoffeeStore.API\Models\MenuModel.cs
+```cs
+﻿namespace PRN232.Lab1.CoffeeStore.API.Models
+{
+    public class MenuModel
+    {
+        public required string Id { get; set; }
+        public string? Name { get; set; }
+        public string? FromDate { get; set; }
+        public string? ToDate { get; set; }
+    }
+}
+
+```
+
+### PRN232.Lab1.CoffeeStore.API\Models\ProductModel.cs
+```cs
+﻿namespace PRN232.Lab1.CoffeeStore.API.Models
+{
+    public class ProductModel
+    {
+        public required string Id { get; set; }
+        public string? Name { get; set; }
+        public string? FromDate { get; set; }
+        public string? ToDate { get; set; }
     }
 }
 
@@ -1664,29 +1740,6 @@ namespace PRN232.Lab1.CoffeeStore.Service.Interfaces
 
 ```
 
-### PRN232.Lab1.CoffeeStore.Service\Interfaces\IProductInMenuService.cs
-```cs
-﻿using PRN232.Lab1.CoffeeStore.Data.Entities;
-using PRN232.Lab1.CoffeeStore.Service.RequestModels;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace PRN232.Lab1.CoffeeStore.Service.Interfaces
-{
-    public interface IProductInMenuService
-    {
-        Task<ProductInMenu> CreateProductInMenuAsync(ProductInMenuRequestModel request);
-        Task<List<ProductInMenu>> GetProductsInMenuAsync(string? menuId);
-        Task DeleteProductFromMenuAsync(string productInMenuId);
-        Task UpdateProductInMenuAsync(string productInMenuId, ProductInMenuRequestModel request);
-    }
-}
-
-```
-
 ### PRN232.Lab1.CoffeeStore.Service\Interfaces\IProductService.cs
 ```cs
 ﻿using PRN232.Lab1.CoffeeStore.Data.Entities;
@@ -1699,7 +1752,7 @@ namespace PRN232.Lab1.CoffeeStore.Service.Interfaces
         Task<Product> CreatProductAsync(ProductRequestModel request);
         Task<List<Product>> GetAllProductsAsync();
         Task<Product?> GetProductByIdAsync(string productId);
-        Task<Product?> UpdateProductAsync(string id, ProductRequestModel request);
+        Task<Product?> UpdateProductAsync(ProductRequestModel request);
         Task DeleteProductAsync(string productId);
     }
 }
@@ -1722,27 +1775,6 @@ namespace PRN232.Lab1.CoffeeStore.Service.RequestModels
 
 ```
 
-### PRN232.Lab1.CoffeeStore.Service\RequestModels\ProductInMenuRequestModel.cs
-```cs
-﻿using PRN232.Lab1.CoffeeStore.Data.Entities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace PRN232.Lab1.CoffeeStore.Service.RequestModels
-{
-    public class ProductInMenuRequestModel
-    {
-        public string? ProductId { get; set; }
-        public string? MenuId { get; set; }
-        public int Quantity { get; set; }
-    }
-}
-
-```
-
 ### PRN232.Lab1.CoffeeStore.Service\RequestModels\ProductRequestModel.cs
 ```cs
 ﻿using System;
@@ -1755,6 +1787,7 @@ namespace PRN232.Lab1.CoffeeStore.Service.RequestModels
 {
     public class ProductRequestModel
     {
+        public string? Id { get; set; }
         public string? Name { get; set; }
         public decimal? Price { get; set; }
         public string? Description { get; set; }
@@ -1864,91 +1897,6 @@ namespace PRN232.Lab1.CoffeeStore.Service.Services
 
 ```
 
-### PRN232.Lab1.CoffeeStore.Service\Services\ProductInMenuService.cs
-```cs
-﻿using Microsoft.EntityFrameworkCore;
-using PRN232.Lab1.CoffeeStore.Data.Database;
-using PRN232.Lab1.CoffeeStore.Data.Entities;
-using PRN232.Lab1.CoffeeStore.Data.Interfaces;
-using PRN232.Lab1.CoffeeStore.Service.Interfaces;
-using PRN232.Lab1.CoffeeStore.Service.RequestModels;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace PRN232.Lab1.CoffeeStore.Service.Services
-{
-    public class ProductInMenuService: IProductInMenuService
-    {
-        private readonly IProductInMenuRepository _productMenuRepo;
-        private readonly IProductRepository _productRepo;
-        private readonly IMenuRepository _menuRepo;
-
-        public ProductInMenuService(IProductInMenuRepository productMenuRepo, IProductRepository productRepo, IMenuRepository menuRepo)
-        {
-            _productMenuRepo = productMenuRepo;
-            _productRepo = productRepo;
-            _menuRepo = menuRepo;
-        }
-
-        public async Task<ProductInMenu> CreateProductInMenuAsync(ProductInMenuRequestModel request)
-        {
-            if(string.IsNullOrWhiteSpace(request.ProductId) || string.IsNullOrWhiteSpace(request.MenuId))
-            {
-                               throw new Exception("ProductId and MenuId cannot be null or empty");
-            }
-            if(request.Quantity <= 0)
-            {
-                throw new Exception("Quantity must be greater than zero");
-            }
-            var product = await _productRepo.GetByIdAsync(request.ProductId) ?? throw new Exception("Product not found");
-            var menu = await _menuRepo.GetByIdAsync(request.MenuId) ?? throw new Exception("Menu not found");
-
-            var pim = new ProductInMenu
-            {
-                ProductId = request.ProductId,
-                MenuId = request.MenuId,
-                Quantity = request.Quantity
-            };
-
-            await _productMenuRepo.AddAsync(pim);
-            await _productMenuRepo.SaveChangeAsync();
-
-            return pim;
-        }
-
-        public async Task<List<ProductInMenu>> GetProductsInMenuAsync(string? menuId)
-        {
-            var list = await _productMenuRepo.FindAsync(pim => pim.MenuId == menuId);
-            return list.ToList();
-
-        }
-
-        public async Task DeleteProductFromMenuAsync(string productInMenuId)
-        {
-            var pim = await _productMenuRepo.GetByIdAsync(productInMenuId);
-            if (pim == null) throw new Exception("Not found");
-            await _productMenuRepo.DeleteAsync(pim);
-            await _productMenuRepo.SaveChangeAsync();
-        }
-
-        public async Task UpdateProductInMenuAsync(string productInMenuId, ProductInMenuRequestModel request)
-        {
-            var pim = await _productMenuRepo.GetByIdAsync(productInMenuId);
-            if (pim == null) throw new Exception("Not found");
-            pim.Quantity = request.Quantity;
-            pim.ProductId = request.ProductId;
-            pim.MenuId = request.MenuId;
-            await _productMenuRepo.UpdateAsync(pim);
-            await _productMenuRepo.SaveChangeAsync();
-        }
-    }
-}
-
-```
-
 ### PRN232.Lab1.CoffeeStore.Service\Services\ProductService.cs
 ```cs
 ﻿using PRN232.Lab1.CoffeeStore.Data.Entities;
@@ -2002,9 +1950,14 @@ namespace PRN232.Lab1.CoffeeStore.Service.Services
             var product = await repo.GetByIdAsync(productId) ?? throw new Exception("Id not found"); ;
             return product;
         }
-        public async Task<Product?> UpdateProductAsync(string id, ProductRequestModel request)
+        public async Task<Product?> UpdateProductAsync(ProductRequestModel request)
         {
-            var product = await repo.GetByIdAsync(id) ?? throw new Exception("Id not found"); ;
+            if(string.IsNullOrWhiteSpace(request.Id))
+            {
+                throw new Exception("Id is not null");
+            }
+
+            var product = await repo.GetByIdAsync(request.Id) ?? throw new Exception("Id not found");            
 
             // Validation nếu cần
             if (request.Price != null)
@@ -2115,7 +2068,7 @@ namespace PRN232.Lab1.CoffeeStore.Service.Validations
         }
         public static void ValidatPrice(decimal? price)
         {
-            if (price < 0)
+            if (price <= 0)
             {
                 throw new Exception("Price can not less than 0");
             }

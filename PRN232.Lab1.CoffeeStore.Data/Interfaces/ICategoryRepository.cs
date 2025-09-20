@@ -2,7 +2,7 @@
 
 namespace PRN232.Lab1.CoffeeStore.Data.Interfaces
 {
-    public interface IProductInMenuRepository : IGenericRepository<ProductInMenu>
+    public interface ICategoryRepository : IGenericRepository<Category>
     {
     }
 }

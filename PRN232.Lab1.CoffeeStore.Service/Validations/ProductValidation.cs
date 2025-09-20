@@ -30,7 +30,7 @@ namespace PRN232.Lab1.CoffeeStore.Service.Validations
         }
         public static void ValidatPrice(decimal? price)
         {
-            if (price < 0)
+            if (price <= 0)
             {
                 throw new Exception("Price can not less than 0");
             }

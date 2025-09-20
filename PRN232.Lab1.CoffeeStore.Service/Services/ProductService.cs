@@ -1,26 +1,29 @@
 ﻿using PRN232.Lab1.CoffeeStore.Data.Entities;
 using PRN232.Lab1.CoffeeStore.Data.Interfaces;
 using PRN232.Lab1.CoffeeStore.Service.Interfaces;
-using PRN232.Lab1.CoffeeStore.Service.RequestModels;
+using PRN232.Lab1.CoffeeStore.Service.Models;
 using PRN232.Lab1.CoffeeStore.Service.Validations;
 
 namespace PRN232.Lab1.CoffeeStore.Service.Services
 {
     public class ProductService : IProductService
     {
-        private readonly IProductRepository repo;
+        private readonly IProductRepository _productRepo;
+        private readonly ICategoryRepository _categoryRepo;
 
-        public ProductService(IProductRepository repo)
+        public ProductService(IProductRepository productRepo, ICategoryRepository categoryRepo)
         {
-            this.repo = repo;
+            _productRepo = productRepo;
+            _categoryRepo = categoryRepo;
         }
 
-        public async Task<Product> CreatProductAsync(ProductRequestModel request)
+        public async Task CreatProductAsync(ProductRequestModel request)
         {
             if (string.IsNullOrWhiteSpace(request.CategoryId))
             {
                 throw new Exception("CategoryId is not null");
             }
+            var category = await _categoryRepo.GetByIdAsync(request.CategoryId) ?? throw new Exception("CategoryId not found");
             // check vallid 
             ProductValidation.ValidatPrice(request.Price);
             ProductValidation.ValidateName(request.Name);
@@ -34,25 +37,47 @@ namespace PRN232.Lab1.CoffeeStore.Service.Services
                 CategoryId = request.CategoryId
             };
 
-            await repo.AddAsync(product);
-            await repo.SaveChangeAsync();
+            await _productRepo.AddAsync(product);
+            await _productRepo.SaveChangeAsync();
+        }
+        public async Task<IEnumerable<ProductResponseModel>> GetAllProductsAsync()
+        {
+            var products = await _productRepo.GetAllAsync();
 
-            return product;
+            return products.Select(p => new ProductResponseModel
+            {
+                CategoryId = p.CategoryId,
+                ProductId = p.ProductId,
+                Price = p.Price,
+                Description = p.Description,
+                Name = p.Name
+            });
         }
-        public async Task<List<Product>> GetAllProductsAsync()
+        public async Task<ProductResponseModel?> GetProductByIdAsync(string productId)
         {
-            var products = await repo.GetAllAsync();
-            return products.ToList();
+            var product = await _productRepo.GetByIdAsync(productId) ?? throw new Exception("Id not found"); ;
+            return new ProductResponseModel
+            {
+                ProductId = product.ProductId,
+                Price = product.Price,
+                Name = product.Name,
+                CategoryId = product.CategoryId,
+                Description = product.Description
+            };
         }
-        public async Task<Product?> GetProductByIdAsync(string productId)
+        public async Task UpdateProductAsync(string id, ProductRequestModel request)
         {
-            var product = await repo.GetByIdAsync(productId) ?? throw new Exception("Id not found"); ;
-            return product;
-        }
-        public async Task<Product?> UpdateProductAsync(string id, ProductRequestModel request)
-        {
-            var product = await repo.GetByIdAsync(id) ?? throw new Exception("Id not found"); ;
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                throw new Exception("Id is not null");
+            }
 
+            var product = await _productRepo.GetByIdAsync(id) ?? throw new Exception("Id not found");
+            if (string.IsNullOrWhiteSpace(request.CategoryId))
+            {
+                throw new Exception("CategoryId is not null");
+            }
+            var category = await _categoryRepo.GetByIdAsync(request.CategoryId) ?? throw new Exception("CategoryId not found");
             // Validation nếu cần
             if (request.Price != null)
                 ProductValidation.ValidatPrice(request.Price);
@@ -67,16 +92,14 @@ namespace PRN232.Lab1.CoffeeStore.Service.Services
             product.Description = request.Description ?? product.Description;
             product.CategoryId = request.CategoryId ?? product.CategoryId;
 
-            await repo.UpdateAsync(product);
-            await repo.SaveChangeAsync();
-
-            return product;
+            await _productRepo.UpdateAsync(product);
+            await _productRepo.SaveChangeAsync();
         }
         public async Task DeleteProductAsync(string productId)
         {
-            var product = await repo.GetByIdAsync(productId) ?? throw new Exception("Id not found");
-            await repo.DeleteAsync(product);
-            await repo.SaveChangeAsync();
+            var product = await _productRepo.GetByIdAsync(productId) ?? throw new Exception("Id not found");
+            await _productRepo.DeleteAsync(product);
+            await _productRepo.SaveChangeAsync();
         }
 
     }

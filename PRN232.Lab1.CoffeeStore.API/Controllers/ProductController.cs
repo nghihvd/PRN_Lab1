@@ -1,7 +1,6 @@
-﻿using AutoMapper;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using PRN232.Lab1.CoffeeStore.Service.Interfaces;
-using PRN232.Lab1.CoffeeStore.Service.RequestModels;
+using PRN232.Lab1.CoffeeStore.Service.Models;
 
 namespace PRN232.Lab1.CoffeeStore.API.Controllers
 {
@@ -10,12 +9,10 @@ namespace PRN232.Lab1.CoffeeStore.API.Controllers
     public class ProductController : ControllerBase
     {
         private readonly IProductService _service;
-        private readonly IMapper _mapper;
 
-        public ProductController(IProductService service, IMapper mapper)
+        public ProductController(IProductService service)
         {
             _service = service;
-            _mapper = mapper;
         }
 
         [HttpGet]
@@ -44,8 +41,8 @@ namespace PRN232.Lab1.CoffeeStore.API.Controllers
         {
             try
             {
-                var product = await _service.CreatProductAsync(request);
-                return CreatedAtAction(nameof(GetById), new { id = product.ProductId }, product);
+                await _service.CreatProductAsync(request);
+                return Ok("Create Successfully");
             }
             catch (Exception e)
             {
@@ -58,8 +55,8 @@ namespace PRN232.Lab1.CoffeeStore.API.Controllers
         {
             try
             {
-                var updated = await _service.UpdateProductAsync(id, request);
-                return Ok(updated);
+                await _service.UpdateProductAsync(id, request);
+                return Ok("Update successfully");
             }
             catch (Exception e)
             {
@@ -73,7 +70,7 @@ namespace PRN232.Lab1.CoffeeStore.API.Controllers
             try
             {
                 await _service.DeleteProductAsync(id);
-                return NoContent();
+                return Ok("Delete Successfully");
             }
             catch (Exception e)
             {

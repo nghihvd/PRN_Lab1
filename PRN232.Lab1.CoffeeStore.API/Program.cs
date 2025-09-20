@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using PRN232.Lab1.CoffeeStore.Data.Database;
 using PRN232.Lab1.CoffeeStore.Data.Interfaces;
-using PRN232.Lab1.CoffeeStore.Data.Repository;
+using PRN232.Lab1.CoffeeStore.Data.Repositories;
 using PRN232.Lab1.CoffeeStore.Service.Interfaces;
 using PRN232.Lab1.CoffeeStore.Service.Services;
 
@@ -21,15 +21,18 @@ builder.Services.AddDbContext<DatabaseContext>(options =>
     options.UseSqlServer(connectionString));
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IMenuRepository, MenuRepository>();
+builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<IProductInMenuRepository, ProductInMenuRepository>();
+
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IMenuService, MenuService>();
-builder.Services.AddScoped<IProductInMenuService, ProductInMenuService>();
+
+
 var app = builder.Build();
 
 
-    app.UseSwagger();
-    app.UseSwaggerUI();
+app.UseSwagger();
+app.UseSwaggerUI();
 
 
 app.UseHttpsRedirection();

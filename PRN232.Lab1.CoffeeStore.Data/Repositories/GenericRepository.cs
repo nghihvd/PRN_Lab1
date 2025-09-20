@@ -3,7 +3,7 @@ using PRN232.Lab1.CoffeeStore.Data.Database;
 using PRN232.Lab1.CoffeeStore.Data.Interfaces;
 using System.Linq.Expressions;
 
-namespace PRN232.Lab1.CoffeeStore.Data.Repository
+namespace PRN232.Lab1.CoffeeStore.Data.Repositories
 {
     public class GenericRepository<T> : IGenericRepository<T> where T : class
     {
