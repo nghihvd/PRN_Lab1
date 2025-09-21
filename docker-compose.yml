@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   db:
     image: mcr.microsoft.com/mssql/server:2022-latest
@@ -22,10 +20,10 @@ services:
     depends_on:
       - db
     environment:
-      ConnectionStrings__DefaultConnection: "Server=db;Database=CoffeeStoreDB;User Id=sa;Password=Nghi000@;"
+      ConnectionStrings__DefaultConnection: "Server=db,1433;Database=CoffeeStoreDB;User Id=sa;Password=Nghi000@;TrustServerCertificate=True;"
       ASPNETCORE_ENVIRONMENT: Development
     ports:
-      - "5000:80"
+      - "5000:8080"
     networks:
       - coffee_network
 
