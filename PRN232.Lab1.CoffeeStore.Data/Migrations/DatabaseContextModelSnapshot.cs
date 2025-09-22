@@ -35,7 +35,39 @@ namespace PRN232.Lab1.CoffeeStore.Data.Migrations
 
                     b.HasKey("CategoryId");
 
-                    b.ToTable("Categories", (string)null);
+                    b.ToTable("Categories");
+
+                    b.HasData(
+                        new
+                        {
+                            CategoryId = "11111111-1111-1111-1111-111111111111",
+                            Description = "Drinks and coffee",
+                            Name = "Beverages"
+                        },
+                        new
+                        {
+                            CategoryId = "22222222-2222-2222-2222-222222222222",
+                            Description = "Light snacks and pastries",
+                            Name = "Snacks"
+                        },
+                        new
+                        {
+                            CategoryId = "33333333-3333-3333-3333-333333333333",
+                            Description = "Milk and milk products",
+                            Name = "Dairy"
+                        },
+                        new
+                        {
+                            CategoryId = "44444444-4444-4444-4444-444444444444",
+                            Description = "Bread and baked goods",
+                            Name = "Bakery"
+                        },
+                        new
+                        {
+                            CategoryId = "55555555-5555-5555-5555-555555555555",
+                            Description = "Cold beverages",
+                            Name = "Cold Drinks"
+                        });
                 });
 
             modelBuilder.Entity("PRN232.Lab1.CoffeeStore.Data.Entities.Menu", b =>
@@ -54,7 +86,44 @@ namespace PRN232.Lab1.CoffeeStore.Data.Migrations
 
                     b.HasKey("MenuId");
 
-                    b.ToTable("Menus", (string)null);
+                    b.ToTable("Menus");
+
+                    b.HasData(
+                        new
+                        {
+                            MenuId = "11111111-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+                            FromDate = new DateTime(2025, 9, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Name = "Breakfast Menu",
+                            ToDate = new DateTime(2025, 9, 30, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            MenuId = "22222222-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+                            FromDate = new DateTime(2025, 9, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Name = "Lunch Menu",
+                            ToDate = new DateTime(2025, 9, 30, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            MenuId = "33333333-cccc-cccc-cccc-cccccccccccc",
+                            FromDate = new DateTime(2025, 9, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Name = "Dinner Menu",
+                            ToDate = new DateTime(2025, 9, 30, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            MenuId = "44444444-dddd-dddd-dddd-dddddddddddd",
+                            FromDate = new DateTime(2025, 9, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Name = "Snack Menu",
+                            ToDate = new DateTime(2025, 9, 30, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            MenuId = "55555555-eeee-eeee-eeee-eeeeeeeeeeee",
+                            FromDate = new DateTime(2025, 9, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Name = "Drinks Menu",
+                            ToDate = new DateTime(2025, 9, 30, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        });
                 });
 
             modelBuilder.Entity("PRN232.Lab1.CoffeeStore.Data.Entities.Product", b =>
@@ -78,7 +147,49 @@ namespace PRN232.Lab1.CoffeeStore.Data.Migrations
 
                     b.HasIndex("CategoryId");
 
-                    b.ToTable("Products", (string)null);
+                    b.ToTable("Products");
+
+                    b.HasData(
+                        new
+                        {
+                            ProductId = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+                            CategoryId = "11111111-1111-1111-1111-111111111111",
+                            Description = "Strong coffee shot",
+                            Name = "Espresso",
+                            Price = 2.5m
+                        },
+                        new
+                        {
+                            ProductId = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+                            CategoryId = "22222222-2222-2222-2222-222222222222",
+                            Description = "Buttery French pastry",
+                            Name = "Croissant",
+                            Price = 3.0m
+                        },
+                        new
+                        {
+                            ProductId = "cccccccc-cccc-cccc-cccc-cccccccccccc",
+                            CategoryId = "33333333-3333-3333-3333-333333333333",
+                            Description = "Cheddar cheese block",
+                            Name = "Cheese",
+                            Price = 4.5m
+                        },
+                        new
+                        {
+                            ProductId = "dddddddd-dddd-dddd-dddd-dddddddddddd",
+                            CategoryId = "44444444-4444-4444-4444-444444444444",
+                            Description = "French bread",
+                            Name = "Baguette",
+                            Price = 2.0m
+                        },
+                        new
+                        {
+                            ProductId = "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+                            CategoryId = "55555555-5555-5555-5555-555555555555",
+                            Description = "Cold black tea with ice",
+                            Name = "Iced Tea",
+                            Price = 2.0m
+                        });
                 });
 
             modelBuilder.Entity("PRN232.Lab1.CoffeeStore.Data.Entities.ProductInMenu", b =>
@@ -101,7 +212,44 @@ namespace PRN232.Lab1.CoffeeStore.Data.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("ProductInMenus", (string)null);
+                    b.ToTable("ProductInMenus");
+
+                    b.HasData(
+                        new
+                        {
+                            ProductInMenuId = "1a1a1a1a-1111-1111-1111-111111111111",
+                            MenuId = "11111111-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+                            ProductId = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+                            Quantity = 10
+                        },
+                        new
+                        {
+                            ProductInMenuId = "2b2b2b2b-2222-2222-2222-222222222222",
+                            MenuId = "22222222-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+                            ProductId = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+                            Quantity = 15
+                        },
+                        new
+                        {
+                            ProductInMenuId = "3c3c3c3c-3333-3333-3333-333333333333",
+                            MenuId = "33333333-cccc-cccc-cccc-cccccccccccc",
+                            ProductId = "cccccccc-cccc-cccc-cccc-cccccccccccc",
+                            Quantity = 20
+                        },
+                        new
+                        {
+                            ProductInMenuId = "4d4d4d4d-4444-4444-4444-444444444444",
+                            MenuId = "44444444-dddd-dddd-dddd-dddddddddddd",
+                            ProductId = "dddddddd-dddd-dddd-dddd-dddddddddddd",
+                            Quantity = 5
+                        },
+                        new
+                        {
+                            ProductInMenuId = "5e5e5e5e-5555-5555-5555-555555555555",
+                            MenuId = "55555555-eeee-eeee-eeee-eeeeeeeeeeee",
+                            ProductId = "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+                            Quantity = 25
+                        });
                 });
 
             modelBuilder.Entity("PRN232.Lab1.CoffeeStore.Data.Entities.Product", b =>

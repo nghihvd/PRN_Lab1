@@ -10,11 +10,13 @@ namespace PRN232.Lab1.CoffeeStore.Service.Services
     {
         private readonly IProductRepository _productRepo;
         private readonly ICategoryRepository _categoryRepo;
+        private readonly IProductInMenuRepository _productInMenuRepo;
 
-        public ProductService(IProductRepository productRepo, ICategoryRepository categoryRepo)
+        public ProductService(IProductRepository productRepo, ICategoryRepository categoryRepo, IProductInMenuRepository productInMenuRepo)
         {
             _productRepo = productRepo;
             _categoryRepo = categoryRepo;
+            _productInMenuRepo = productInMenuRepo;
         }
 
         public async Task CreatProductAsync(ProductRequestModel request)
@@ -98,9 +100,22 @@ namespace PRN232.Lab1.CoffeeStore.Service.Services
         public async Task DeleteProductAsync(string productId)
         {
             var product = await _productRepo.GetByIdAsync(productId) ?? throw new Exception("Id not found");
+
+            // Xóa các bản ghi ProductInMenu liên quan
+            var productInMenus = await _productInMenuRepo.FindAsync(x => x.ProductId!.Equals(productId));
+
+            foreach (var pim in productInMenus)
+            {
+                await _productInMenuRepo.DeleteAsync(pim);
+            }
+
+            // Xóa sản phẩm
             await _productRepo.DeleteAsync(product);
+
+            await _productInMenuRepo.SaveChangeAsync();
             await _productRepo.SaveChangeAsync();
         }
+
 
     }
 }

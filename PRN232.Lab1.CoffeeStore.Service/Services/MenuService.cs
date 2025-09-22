@@ -69,10 +69,11 @@ namespace PRN232.Lab1.CoffeeStore.Service.Services
 
         public async Task<IEnumerable<MenuResponseModel>> GetAllMenusAsync()
         {
-            var menus = await _menuRepo.GetAllAsync();
+            var menus = await _menuRepo.GetAllIncludeAsync();
 
             var result = menus.Select(menu => new MenuResponseModel
             {
+                MenuId = menu.MenuId,
                 Name = menu.Name,
                 FromDate = menu.FromDate.ToString("yyyy-MM-dd"),
                 ToDate = menu.ToDate.ToString("yyyy-MM-dd"),
@@ -94,11 +95,12 @@ namespace PRN232.Lab1.CoffeeStore.Service.Services
                 throw new Exception("Id not null");
             }
 
-            var menu = await _menuRepo.GetByIdAsync(menuId)
+            var menu = await _menuRepo.GetByIdIncludeAsync(menuId)
                        ?? throw new Exception("Id not found");
 
             return new MenuResponseModel
             {
+                MenuId = menu.MenuId,
                 Name = menu.Name,
                 FromDate = menu.FromDate.ToString("yyyy-MM-dd"),
                 ToDate = menu.ToDate.ToString("yyyy-MM-dd"),
@@ -110,8 +112,7 @@ namespace PRN232.Lab1.CoffeeStore.Service.Services
             };
         }
 
-
-        public async Task UpdateMenuAsync(string id, MenuRequestModel request)
+        public async Task UpdateMenuAsync(string id, MenuUpdateRequestModel request)
         {
             if (string.IsNullOrWhiteSpace(id))
             {
@@ -124,6 +125,10 @@ namespace PRN232.Lab1.CoffeeStore.Service.Services
 
             DateTime fromDate = MenuValidation.DateCheck(request.FromDate);
             DateTime toDate = MenuValidation.DateCheck(request.ToDate);
+            if (fromDate > toDate)
+            {
+                throw new Exception("From date must be before to date");
+            }
 
             menu.Name = request.Name;
             menu.FromDate = fromDate;

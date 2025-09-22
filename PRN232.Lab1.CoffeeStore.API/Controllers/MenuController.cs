@@ -1,5 +1,4 @@
-﻿using AutoMapper;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using PRN232.Lab1.CoffeeStore.Service.Interfaces;
 using PRN232.Lab1.CoffeeStore.Service.Models;
 
@@ -43,7 +42,7 @@ namespace PRN232.Lab1.CoffeeStore.API.Controllers
             try
             {
                 await _service.CreateMenuAsync(request);
-                return Ok("Update Successfully");
+                return Ok("Create Successfully");
             }
             catch (Exception e)
             {
@@ -52,7 +51,7 @@ namespace PRN232.Lab1.CoffeeStore.API.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(string id, [FromBody] MenuRequestModel request)
+        public async Task<IActionResult> Update(string id, [FromBody] MenuUpdateRequestModel request)
         {
             try
             {
